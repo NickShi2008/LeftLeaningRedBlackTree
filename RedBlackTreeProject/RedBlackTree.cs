@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace RedBlackTreeProject
 {
-    class RedBlackTree<T> where T : IComparable<T>
+    public class RedBlackTree<T> where T : IComparable<T>
     {
         Node<T> Root;
 
@@ -28,9 +28,10 @@ namespace RedBlackTreeProject
             {
                 Node<T> current = new Node<T>(value);
                 node = current;
+                node.IsRed = false;
                 return node;
             }
-            else if (node.RightChild.IsRed && node.LeftChild.IsRed)
+            else if (node.RightChild != null && node.RightChild.IsRed && node.LeftChild.IsRed)
             {
                 FlipColor(node);
             }
@@ -46,13 +47,14 @@ namespace RedBlackTreeProject
 
             if(node.RightChild.IsRed)
             {
-                RotateLeft(node);
+                node = RotateLeft(node);
             }
 
             if(node.LeftChild.IsRed && node.LeftChild.LeftChild.IsRed)
             {
-                RotateRight(node);
+                node = RotateRight(node);
             }
+
 
             return node;
         }
@@ -64,7 +66,7 @@ namespace RedBlackTreeProject
             node.RightChild.IsRed = !node.RightChild.IsRed;
         }
 
-        public void RotateLeft(Node<T> node)
+        public Node<T> RotateLeft(Node<T> node)
         {
             bool wasRed = node.IsRed;
             Node<T> temp = node;
@@ -73,9 +75,11 @@ namespace RedBlackTreeProject
             node.LeftChild = temp;
             node.IsRed = wasRed;
             temp.IsRed = true;
+
+            return node;
         }
 
-        public void RotateRight(Node<T> node)
+        public Node<T> RotateRight(Node<T> node)
         {
             bool wasRed = node.IsRed;
             Node<T> temp = node;
@@ -84,6 +88,8 @@ namespace RedBlackTreeProject
             node.RightChild = temp;
             node.IsRed = wasRed;
             temp.IsRed = true;
+
+            return node;
         }
 
         public bool Remove(T val)
@@ -104,65 +110,136 @@ namespace RedBlackTreeProject
             {
                 if (!node.IsRed && !node.LeftChild.IsRed)
                 {
-                    MoveRedLeft(node);
+                   node = MoveRedLeft(node);
                 }
                 node = RemoveHelper(node.LeftChild, value);
             }
-            else if (node.Value.CompareTo(value) >= 0)
+            else
             {
                 FlipColor(node);
 
                 if(node.LeftChild != null && !node.LeftChild.IsRed)
                 {
-                    RotateRight(node);
+                   node = RotateRight(node);
                 }
 
                 if (!node.IsRed && node.RightChild != null && !node.RightChild.IsRed)
                 {
-                    MoveRedRight(node);
+                   node = MoveRedRight(node);
                 }
 
-                if(node.LeftChild == null && node.RightChild == null && node.Value.Equals(value))
+                if (node.Value.Equals(value))
                 {
-                    node = null;
-                    Count--;
-                    return null;
+                    if (node.LeftChild == null && node.RightChild == null)
+                    {
+                        node = null;
+                        Count--;
+                    }
+                    else if (node.LeftChild == null)
+                    {
+                        node = Minimum(node.RightChild);
+                        RemoveHelper(node.RightChild, node.Value);
+                    }
+                    else if (node.RightChild == null)
+                    {
+                        node = Maximum(node.LeftChild);
+                        RemoveHelper(node.LeftChild, node.Value);
+                    }
                 }
                 else
                 {
-                    node = FindClosest(node);
+                    node = RemoveHelper(node.RightChild, value);
                 }
-                node = RemoveHelper(node.RightChild, value);
             }
 
+            node = FixUp(node);
             return node;
         }
 
         public Node<T> MoveRedRight(Node<T> node)
         {
-            return null;
+            if(!node.RightChild.IsRed)
+            {
+         
+                FlipColor(node);
+                if(node.LeftChild.LeftChild.IsRed)
+                {
+                    node = RotateRight(node);
+                    FlipColor(node);
+                }
+
+            }
+
+            return node;
         }
 
         public Node<T> MoveRedLeft(Node<T> node)
         {
+            if (!node.RightChild.IsRed)
+            {
+                FlipColor(node);
+
+                if (node.RightChild.LeftChild.IsRed)
+                { 
+                    node = RotateLeft(RotateRight(node));
+                    FlipColor(node);
+                }
+
+
+                if(node.RightChild.RightChild.IsRed)
+                {
+                    node = RotateLeft(node);
+                }
+            }
+
+            return node;
+        }
+
+        public Node<T> FixUp(Node<T> node)
+        {
+            if (node.RightChild.IsRed)
+                    node = RotateRight(node);
+
+            if(node.LeftChild.IsRed && node.LeftChild.LeftChild.IsRed)
+            {
+                node = RotateRight(node);
+            }
+
+            if(node.LeftChild.IsRed && node.RightChild.IsRed)
+            {
+                node = FixUp(node);
+            }
+
+            if(node.LeftChild.RightChild != null && node.LeftChild.LeftChild == null)
+            {
+                node.LeftChild = RotateRight(node.LeftChild);
+                if (node.LeftChild.IsRed && node.LeftChild.LeftChild.IsRed)
+                {
+                    node = RotateRight(node);
+                }   
+
+            }
+
             return null;
         }
 
-        public void FixUp()
+        public Node<T> Minimum(Node<T> current)
         {
 
+            while (current.LeftChild != null)
+            {
+                current = current.LeftChild;
+            }
+            return current;
         }
 
-        private Node<T> FindClosest(Node<T> node)
+        public Node<T> Maximum(Node<T> current)
         {
-            Node<T> temp = node.LeftChild;
-            while(node.RightChild != null)
+            while (current.RightChild != null)
             {
-                temp = temp.RightChild;
+                current = current.RightChild;
             }
-
-
-            return temp;
+            return current;
         }
     }
 }
