@@ -19,54 +19,56 @@ namespace RedBlackTreeProject
         public void Add(T value)
         {
             Root = AddHelper(Root, value);
+            Root.IsRed = false;
             Count++;
         }
 
-        public Node<T> AddHelper(Node<T> node, T value)
+        private Node<T> AddHelper(Node<T> node, T value)
         {
             if (node == null)
             {
                 Node<T> current = new Node<T>(value);
                 node = current;
-                node.IsRed = false;
-                return node;
             }
-            else if (node.RightChild != null && node.RightChild.IsRed && node.LeftChild.IsRed)
+            else if (IsRed(node.RightChild) && IsRed(node.LeftChild))
             {
                 FlipColor(node);
             }
 
             if (node.Value.CompareTo(value) < 0)
             {
-                node = AddHelper(node.RightChild, value);
+                node.RightChild = AddHelper(node.RightChild, value);
             }
-            else
+            else if(node.Value.CompareTo(value) > 0)
             {
-                node = AddHelper(node.LeftChild, value);
+                node.LeftChild = AddHelper(node.LeftChild, value);
             }
 
-            if(node.RightChild.IsRed)
+            if(IsRed(node.RightChild))
             {
-                node = RotateLeft(node);
+                if(!IsRed(node.LeftChild))
+                {
+                    node = RotateLeft(node);
+                }
+               
             }
 
-            if(node.LeftChild.IsRed && node.LeftChild.LeftChild.IsRed)
+            if(IsRed(node.LeftChild) && IsRed(node.LeftChild.LeftChild))
             {
                 node = RotateRight(node);
             }
 
-
             return node;
         }
 
-        public void FlipColor(Node<T> node)
+        private void FlipColor(Node<T> node)
         {
             node.IsRed = !node.IsRed;
             node.LeftChild.IsRed = !node.LeftChild.IsRed;
             node.RightChild.IsRed = !node.RightChild.IsRed;
         }
 
-        public Node<T> RotateLeft(Node<T> node)
+        private Node<T> RotateLeft(Node<T> node)
         {
             bool wasRed = node.IsRed;
             Node<T> temp = node;
@@ -79,7 +81,7 @@ namespace RedBlackTreeProject
             return node;
         }
 
-        public Node<T> RotateRight(Node<T> node)
+        private Node<T> RotateRight(Node<T> node)
         {
             bool wasRed = node.IsRed;
             Node<T> temp = node;
@@ -99,33 +101,33 @@ namespace RedBlackTreeProject
             {
                 return false;
             }
-
             Root = RemoveHelper(Root, val);
-            return startingCount == Count;
+
+            return startingCount != Count;
         }
 
-        public Node<T> RemoveHelper(Node<T> node, T value)
+        private Node<T> RemoveHelper(Node<T> node, T value)
         {
+            if (node == null) return node;
             if(node.Value.CompareTo(value) > 0)
             {
-                if (!node.IsRed && !node.LeftChild.IsRed)
+                if (IsBlack(node.LeftChild) && IsBlack(node.LeftChild.LeftChild))
                 {
                    node = MoveRedLeft(node);
                 }
-                node = RemoveHelper(node.LeftChild, value);
+                node.LeftChild = RemoveHelper(node.LeftChild, value);
             }
             else
             {
-                FlipColor(node);
-
-                if(node.LeftChild != null && !node.LeftChild.IsRed)
+                if (IsRed(node.LeftChild) && IsRed(node.RightChild))
                 {
-                   node = RotateRight(node);
+                    FlipColor(node);
                 }
 
-                if (!node.IsRed && node.RightChild != null && !node.RightChild.IsRed)
+
+                if (IsRed(node.LeftChild))
                 {
-                   node = MoveRedRight(node);
+                    node = RotateRight(node);
                 }
 
                 if (node.Value.Equals(value))
@@ -134,83 +136,81 @@ namespace RedBlackTreeProject
                     {
                         node = null;
                         Count--;
+                        return node;
                     }
-                    else if (node.LeftChild == null)
+                    else if (node.RightChild != null)
                     {
-                        node = Minimum(node.RightChild);
-                        RemoveHelper(node.RightChild, node.Value);
-                    }
-                    else if (node.RightChild == null)
-                    {
-                        node = Maximum(node.LeftChild);
-                        RemoveHelper(node.LeftChild, node.Value);
+                        node.Value = Minimum(node.RightChild).Value;
+                        node.RightChild = RemoveHelper(node.RightChild, node.Value);
                     }
                 }
                 else
                 {
-                    node = RemoveHelper(node.RightChild, value);
+                    if (IsBlack(node.RightChild) && IsBlack(node.RightChild.RightChild))
+                    {
+                        node = MoveRedRight(node);
+                    }
+                    node.RightChild = RemoveHelper(node.RightChild, value);
                 }
+                
             }
 
-            node = FixUp(node);
+           
+            return FixUp(node);
+        }
+
+        private Node<T> MoveRedRight(Node<T> node)
+        {
+            FlipColor(node);
+            if(IsRed(node.LeftChild) && IsRed(node.LeftChild.LeftChild))
+            {
+                node = RotateRight(node);
+                FlipColor(node);
+            }
+
             return node;
         }
 
-        public Node<T> MoveRedRight(Node<T> node)
-        {
-            if(!node.RightChild.IsRed)
-            {
-         
-                FlipColor(node);
-                if(node.LeftChild.LeftChild.IsRed)
-                {
-                    node = RotateRight(node);
-                    FlipColor(node);
-                }
+        private Node<T> MoveRedLeft(Node<T> node)
+        { 
+            FlipColor(node);
 
+            if (IsRed(node.RightChild.LeftChild))
+            { 
+                node = RotateLeft(RotateRight(node));
+                FlipColor(node);
+            }
+
+
+            if(IsRed(node.RightChild.RightChild))
+            {
+                node = RotateLeft(node);
             }
 
             return node;
         }
 
-        public Node<T> MoveRedLeft(Node<T> node)
+        private Node<T> FixUp(Node<T> node)
         {
-            if (!node.RightChild.IsRed)
-            {
-                FlipColor(node);
+            
+            bool leftNull = node.LeftChild == null;
+            if (leftNull) return node;
 
-                if (node.RightChild.LeftChild.IsRed)
-                { 
-                    node = RotateLeft(RotateRight(node));
-                    FlipColor(node);
-                }
-
-
-                if(node.RightChild.RightChild.IsRed)
-                {
+            if (IsRed(node.RightChild))
                     node = RotateLeft(node);
-                }
-            }
 
-            return node;
-        }
-
-        public Node<T> FixUp(Node<T> node)
-        {
-            if (node.RightChild.IsRed)
-                    node = RotateRight(node);
-
-            if(node.LeftChild.IsRed && node.LeftChild.LeftChild.IsRed)
+            if(IsRed(node.LeftChild.LeftChild) && node.LeftChild.IsRed)
             {
                 node = RotateRight(node);
             }
 
-            if(node.LeftChild.IsRed && node.RightChild.IsRed)
+            if(IsRed(node.RightChild) && node.LeftChild.IsRed)
             {
-                node = FixUp(node);
+                FlipColor(node);
             }
 
-            if(node.LeftChild.RightChild != null && node.LeftChild.LeftChild == null)
+            if(IsRed(node.LeftChild.RightChild) 
+                && !node.LeftChild.LeftChild.IsRed)
             {
                 node.LeftChild = RotateRight(node.LeftChild);
                 if (node.LeftChild.IsRed && node.LeftChild.LeftChild.IsRed)
@@ -220,10 +220,10 @@ namespace RedBlackTreeProject
 
             }
 
-            return null;
+            return node;
         }
 
-        public Node<T> Minimum(Node<T> current)
+        private Node<T> Minimum(Node<T> current)
         {
 
             while (current.LeftChild != null)
@@ -233,13 +233,28 @@ namespace RedBlackTreeProject
             return current;
         }
 
-        public Node<T> Maximum(Node<T> current)
+        private Node<T> Maximum(Node<T> current)
         {
             while (current.RightChild != null)
             {
                 current = current.RightChild;
             }
             return current;
+        }
+
+        //wish I didn't have to make two but makes readability better
+        //using only IsRed brings problems when checking whether node != null && node.IsBlack
+        //since null node will then bring true if check !IsRed
+        private bool IsRed(Node<T> node)
+        {
+            if (node == null) return false;
+            return node.IsRed;
+        }
+
+        private bool IsBlack(Node<T> node)
+        {
+            if (node == null) return false;
+            return !node.IsRed;
         }
     }
 }
