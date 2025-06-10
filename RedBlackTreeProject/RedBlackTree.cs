@@ -58,7 +58,7 @@ namespace RedBlackTreeProject
                 node = RotateRight(node);
             }
 
-            return node;
+            return FixUp(node);
         }
 
         private void FlipColor(Node<T> node)
@@ -102,7 +102,7 @@ namespace RedBlackTreeProject
                 return false;
             }
             Root = RemoveHelper(Root, val);
-
+            Root.IsRed = false;
             return startingCount != Count;
         }
 
@@ -111,7 +111,7 @@ namespace RedBlackTreeProject
             if (node == null) return node;
             if(node.Value.CompareTo(value) > 0)
             {
-                if (IsBlack(node.LeftChild) && IsBlack(node.LeftChild.LeftChild))
+                if (!IsRed(node.LeftChild) && !IsRed(node.LeftChild.LeftChild))
                 {
                    node = MoveRedLeft(node);
                 }
@@ -146,7 +146,7 @@ namespace RedBlackTreeProject
                 }
                 else
                 {
-                    if (IsBlack(node.RightChild) && IsBlack(node.RightChild.RightChild))
+                    if (!IsRed(node.RightChild) && !IsRed(node.RightChild.RightChild))
                     {
                         node = MoveRedRight(node);
                     }
@@ -192,28 +192,25 @@ namespace RedBlackTreeProject
 
         private Node<T> FixUp(Node<T> node)
         {
-            
-            bool leftNull = node.LeftChild == null;
-            if (leftNull) return node;
 
             if (IsRed(node.RightChild))
-                    node = RotateLeft(node);
+                node = RotateLeft(node);
 
-            if(IsRed(node.LeftChild.LeftChild) && node.LeftChild.IsRed)
+            if (IsRed(node.LeftChild) && IsRed(node.LeftChild.LeftChild))
             {
                 node = RotateRight(node);
             }
 
-            if(IsRed(node.RightChild) && node.LeftChild.IsRed)
+            if(IsRed(node.LeftChild) && IsRed(node.RightChild))
             {
                 FlipColor(node);
             }
 
-            if(IsRed(node.LeftChild.RightChild) 
-                && !node.LeftChild.LeftChild.IsRed)
+            if (node.LeftChild != null && IsRed(node.LeftChild.RightChild) 
+                && !IsRed(node.LeftChild.LeftChild))
             {
                 node.LeftChild = RotateRight(node.LeftChild);
-                if (node.LeftChild.IsRed && node.LeftChild.LeftChild.IsRed)
+                if (IsRed(node.LeftChild) && node.LeftChild.LeftChild.IsRed)
                 {
                     node = RotateRight(node);
                 }   
@@ -245,16 +242,12 @@ namespace RedBlackTreeProject
         //wish I didn't have to make two but makes readability better
         //using only IsRed brings problems when checking whether node != null && node.IsBlack
         //since null node will then bring true if check !IsRed
+        //black is null so lies
         private bool IsRed(Node<T> node)
         {
             if (node == null) return false;
             return node.IsRed;
         }
 
-        private bool IsBlack(Node<T> node)
-        {
-            if (node == null) return false;
-            return !node.IsRed;
-        }
     }
 }
